@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de cookies — Supervielle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/site.css?v=20261114h">
+</head>
+<body class="legal-page">
+  <div class="legal-wrap">
+    <a class="legal-back" href="./index.html">← Volver al inicio</a>
+    <article class="legal-card">
+      <img src="./assets/logo-supervielle.svg" alt="Supervielle" width="169" height="30">
+      <h1>Política de cookies</h1>
+      <p class="meta">Última actualización: noviembre 2026</p>
+
+      <h2>1. ¿Qué son las cookies?</h2>
+      <p>Son archivos pequeños que se guardan en tu dispositivo para recordar preferencias, mejorar la experiencia y mantener el funcionamiento del sitio.</p>
+
+      <h2>2. Cookies que usamos</h2>
+      <ul>
+        <li><strong>Esenciales:</strong> necesarias para navegación, seguridad y sesión del panel.</li>
+        <li><strong>Preferencias:</strong> guardan tu elección del aviso de cookies (`sv_consent`).</li>
+        <li><strong>Funcionales:</strong> ayudan a recordar opciones del login (por ejemplo, recordar documento si lo activás).</li>
+      </ul>
+
+      <h2>3. Consentimiento</h2>
+      <p>Al entrar al sitio verás un aviso. Podés aceptar todas o continuar solo con cookies esenciales. Podés cambiar de opinión borrando cookies del navegador.</p>
+
+      <h2>4. Cómo administrarlas</h2>
+      <p>Desde la configuración de tu navegador podés bloquear o eliminar cookies. Si bloqueás las esenciales, algunas funciones pueden no operar correctamente.</p>
+
+      <h2>5. Más información</h2>
+      <p>Revisá también nuestros <a href="./terminos.html">Términos y condiciones</a>.</p>
+    </article>
+  </div>
+</body>
+</html>

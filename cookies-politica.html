@@ -1,0 +1,183 @@
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".carousel-slide"));
+  var dots = Array.prototype.slice.call(document.querySelectorAll(".carousel-dots button"));
+  var index = 0;
+  var timer = null;
+
+  function show(i) {
+    index = (i + slides.length) % slides.length;
+    slides.forEach(function (slide, n) {
+      slide.classList.toggle("is-active", n === index);
+    });
+    dots.forEach(function (dot, n) {
+      dot.classList.toggle("is-active", n === index);
+      dot.setAttribute("aria-selected", n === index ? "true" : "false");
+    });
+  }
+
+  function next() { show(index + 1); }
+  function stop() { if (timer) clearInterval(timer); }
+  function start() {
+    stop();
+    timer = setInterval(next, 5000);
+  }
+
+  dots.forEach(function (dot, n) {
+    dot.addEventListener("click", function () {
+      show(n);
+      start();
+    });
+  });
+  show(0);
+  start();
+
+  var form = document.getElementById("login-form");
+  var btn = document.getElementById("btn-ingresar");
+  var pass = document.getElementById("clave");
+  var user = document.getElementById("login-usuario") || document.getElementById("usuario");
+  var toggleClave = document.getElementById("toggle-pass");
+  var toggleUser = document.getElementById("toggle-user");
+  var keyboardBtn = document.getElementById("btn-keyboard");
+  var keyboard = document.getElementById("virtual-keyboard");
+  var kbClose = document.getElementById("kb-close");
+  var shiftOn = false;
+  var activeField = pass;
+
+  function syncButton() {
+    var doc = (document.getElementById("documento").value || "").trim();
+    var u = (user.value || "").trim();
+    var c = (pass.value || "").trim();
+    btn.disabled = !(doc && u && c);
+  }
+
+  ["documento", "login-usuario", "usuario", "clave"].forEach(function (id) {
+    var node = document.getElementById(id);
+    if (node) node.addEventListener("input", syncButton);
+  });
+
+  function bindToggle(button, input) {
+    if (!button || !input) return;
+    button.addEventListener("click", function () {
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      button.setAttribute("aria-label", show ? "Ocultar" : "Mostrar");
+    });
+  }
+
+  bindToggle(toggleClave, pass);
+  bindToggle(toggleUser, user);
+
+  if (user) {
+    user.addEventListener("focus", function () { activeField = user; });
+  }
+  if (pass) {
+    pass.addEventListener("focus", function () { activeField = pass; });
+  }
+
+  function insertText(text) {
+    if (!activeField) activeField = pass;
+    var start = activeField.selectionStart || activeField.value.length;
+    var end = activeField.selectionEnd || activeField.value.length;
+    var value = activeField.value || "";
+    activeField.value = value.slice(0, start) + text + value.slice(end);
+    var pos = start + text.length;
+    activeField.setSelectionRange(pos, pos);
+    activeField.dispatchEvent(new Event("input", { bubbles: true }));
+    activeField.focus();
+    syncButton();
+  }
+
+  function backspace() {
+    if (!activeField) return;
+    var start = activeField.selectionStart || 0;
+    var end = activeField.selectionEnd || 0;
+    var value = activeField.value || "";
+    if (start !== end) {
+      activeField.value = value.slice(0, start) + value.slice(end);
+      activeField.setSelectionRange(start, start);
+    } else if (start > 0) {
+      activeField.value = value.slice(0, start - 1) + value.slice(start);
+      activeField.setSelectionRange(start - 1, start - 1);
+    }
+    activeField.dispatchEvent(new Event("input", { bubbles: true }));
+    activeField.focus();
+    syncButton();
+  }
+
+  function setShift(on) {
+    shiftOn = on;
+    keyboard.classList.toggle("is-shift", shiftOn);
+    keyboard.querySelectorAll("[data-key]").forEach(function (keyBtn) {
+      var base = keyBtn.getAttribute("data-key") || "";
+      if (base.length === 1 && /[a-zñ]/i.test(base)) {
+        keyBtn.textContent = shiftOn ? base.toUpperCase() : base.toLowerCase();
+      }
+    });
+  }
+
+  function openKeyboard() {
+    if (!keyboard) return;
+    activeField = pass;
+    pass.focus();
+    keyboard.hidden = false;
+    keyboard.classList.add("is-open");
+    keyboardBtn.setAttribute("aria-expanded", "true");
+  }
+
+  function closeKeyboard() {
+    if (!keyboard) return;
+    keyboard.classList.remove("is-open");
+    keyboard.hidden = true;
+    keyboardBtn.setAttribute("aria-expanded", "false");
+    setShift(false);
+  }
+
+  if (keyboardBtn) {
+    keyboardBtn.addEventListener("click", function () {
+      if (keyboard.classList.contains("is-open")) closeKeyboard();
+      else openKeyboard();
+    });
+  }
+  if (kbClose) kbClose.addEventListener("click", closeKeyboard);
+
+  if (keyboard) {
+    keyboard.addEventListener("mousedown", function (e) {
+      // Evita que el input pierda el foco al clickear teclas
+      e.preventDefault();
+    });
+
+    keyboard.addEventListener("click", function (e) {
+      var keyBtn = e.target.closest("[data-key], [data-action]");
+      if (!keyBtn) return;
+
+      var action = keyBtn.getAttribute("data-action");
+      if (action === "close") {
+        closeKeyboard();
+        return;
+      }
+      if (action === "shift") {
+        setShift(!shiftOn);
+        return;
+      }
+      if (action === "backspace") {
+        backspace();
+        return;
+      }
+      if (action === "space") {
+        insertText(" ");
+        return;
+      }
+
+      var key = keyBtn.getAttribute("data-key") || "";
+      if (!key) return;
+      if (key.length === 1 && /[a-zñ]/i.test(key)) {
+        insertText(shiftOn ? key.toUpperCase() : key.toLowerCase());
+        if (shiftOn) setShift(false);
+      } else {
+        insertText(key);
+      }
+    });
+  }
+
+  syncButton();
+})();

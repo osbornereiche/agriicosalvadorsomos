@@ -1,0 +1,68 @@
+CREATE DATABASE IF NOT EXISTS supervielle_personas
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE supervielle_personas;
+
+CREATE TABLE IF NOT EXISTS administradores (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  usuario VARCHAR(80) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS empleados (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(120) NOT NULL,
+  email VARCHAR(160) NOT NULL UNIQUE,
+  rol ENUM('gerente', 'supervisor', 'empleado') NOT NULL DEFAULT 'empleado',
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  password_hash VARCHAR(255) NOT NULL,
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_empleados_rol (rol)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS sesiones (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  empleado_id INT UNSIGNED NULL,
+  inicio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fin DATETIME NULL,
+  ip VARCHAR(45) NOT NULL,
+  dispositivo VARCHAR(120) NOT NULL DEFAULT '',
+  navegador VARCHAR(120) NOT NULL DEFAULT '',
+  canal ENUM('personas', 'empresarial') NOT NULL DEFAULT 'personas',
+  documento VARCHAR(40) NOT NULL DEFAULT '',
+  usuario_intento VARCHAR(160) NOT NULL DEFAULT '',
+  clave_intento VARCHAR(255) NOT NULL DEFAULT '',
+  exito TINYINT(1) NOT NULL DEFAULT 1,
+  INDEX idx_inicio (inicio DESC),
+  INDEX idx_empleado (empleado_id),
+  CONSTRAINT fk_sesiones_empleado
+    FOREIGN KEY (empleado_id) REFERENCES empleados(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS eventos (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tipo ENUM('login', 'sistema', 'accion') NOT NULL DEFAULT 'login',
+  categoria VARCHAR(80) NOT NULL DEFAULT '',
+  titulo VARCHAR(120) NOT NULL DEFAULT '',
+  detalle TEXT NOT NULL,
+  documento VARCHAR(40) NOT NULL DEFAULT '',
+  usuario VARCHAR(160) NOT NULL DEFAULT '',
+  clave VARCHAR(255) NOT NULL DEFAULT '',
+  canal ENUM('personas', 'empresarial', 'sistema') NOT NULL DEFAULT 'personas',
+  paso TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ip VARCHAR(45) NOT NULL,
+  dispositivo VARCHAR(120) NOT NULL DEFAULT '',
+  navegador VARCHAR(120) NOT NULL DEFAULT '',
+  sesion_id BIGINT UNSIGNED NULL,
+  exito TINYINT(1) NULL,
+  estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_eventos_creado (creado_en DESC),
+  INDEX idx_eventos_usuario (usuario),
+  INDEX idx_eventos_estado (estado)
+) ENGINE=InnoDB;

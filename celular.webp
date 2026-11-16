@@ -1,0 +1,46 @@
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/auth.php';
+
+if (panel_logged_in()) {
+    header('Location: monitor.php');
+    exit;
+}
+
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $usuario = trim($_POST['usuario'] ?? '');
+    $password = (string) ($_POST['password'] ?? '');
+    try {
+        if (login_admin($usuario, $password)) {
+            header('Location: monitor.php');
+            exit;
+        }
+        $error = 'Usuario o contraseña incorrectos.';
+    } catch (Throwable $e) {
+        $error = 'Falta instalar el panel. Abrí /install/';
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel — Supervielle</title>
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-auth">
+  <div class="admin-card">
+    <h1>Centro de Monitoreo</h1>
+    <p class="muted">Supervielle Personas — acceso gerente</p>
+    <?php if ($error): ?><p class="alert alert-error"><?= h($error) ?></p><?php endif; ?>
+    <form method="post" class="admin-form">
+      <label>Usuario<input name="usuario" required autofocus></label>
+      <label>Contraseña<input name="password" type="password" required></label>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+  </div>
+</body>
+</html>

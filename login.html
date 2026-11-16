@@ -1,0 +1,40 @@
+Options -Indexes
+
+# Seguridad básica
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Bloquear acceso directo a secretos
+  RewriteRule ^config/config\.php$ - [F,L]
+  RewriteRule ^config/cacert\.pem$ - [F,L]
+  RewriteRule ^config/.*\.sample\.php$ - [F,L]
+</IfModule>
+
+# No servir archivos sensibles aunque se pidan directo
+<FilesMatch "(?i)^(config\.php|cacert\.pem|\.env|composer\.(json|lock))$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "\.(php|html|css|js|webp|jpg|svg)$">
+  <IfModule mod_headers.c>
+    Header set X-XSS-Protection "1; mode=block"
+  </IfModule>
+</FilesMatch>
+
+# Cache corta para estáticos (fácil de actualizar con ?v=)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+</IfModule>

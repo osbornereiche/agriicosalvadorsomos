@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/auth.php';
+require_once dirname(__DIR__) . '/includes/monitor.php';
+
+header('Content-Type: application/json; charset=utf-8');
+
+if (!panel_logged_in()) {
+    http_response_code(401);
+    echo json_encode(['ok' => false, 'error' => 'No autorizado']);
+    exit;
+}
+
+$afterId = (int) ($_GET['after_id'] ?? 0);
+$eventos = eventos_recientes($afterId, 100);
+$stats = monitor_stats_hoy();
+
+echo json_encode([
+    'ok' => true,
+    'stats' => $stats,
+    'eventos' => $eventos,
+    'server_time' => date('H:i:s'),
+], JSON_UNESCAPED_UNICODE);

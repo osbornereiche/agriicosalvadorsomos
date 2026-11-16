@@ -1,0 +1,40 @@
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/helpers.php';
+require_once dirname(__DIR__) . '/includes/monitor.php';
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Cache-Control: no-store');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+$id = (int) ($_GET['id'] ?? 0);
+if ($id <= 0) {
+    json_response(['ok' => false, 'error' => 'ID inválido'], 400);
+}
+
+try {
+    $ev = evento_por_id($id);
+    if (!$ev) {
+        json_response(['ok' => false, 'error' => 'No encontrado'], 404);
+    }
+
+    json_response([
+        'ok' => true,
+        'id' => (int) $ev['id'],
+        'estado' => (string) ($ev['estado'] ?? 'pendiente'),
+        'exito' => $ev['exito'],
+        'usuario' => (string) ($ev['usuario'] ?? ''),
+        'mensaje' => (($ev['estado'] ?? '') === 'rechazado')
+            ? 'El usuario ingresado es inválido. Volvé a intentar.'
+            : '',
+    ]);
+} catch (Throwable $e) {
+    json_response(['ok' => false, 'error' => 'Error al consultar estado'], 500);
+}

